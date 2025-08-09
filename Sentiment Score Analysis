@@ -1,0 +1,38 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, udf
+from pyspark.sql.types import IntegerType
+
+# 1. Create a SparkSession
+spark = SparkSession.builder.appName("Local Sentiment Analysis").getOrCreate()
+
+# 2. Define our sentiment lexicons
+positive_words = {"beautiful", "love", "awesome", "great", "excellent", "best", "stunning"}
+negative_words = {"hate", "horrible", "terrible", "bad", "worst", "crude"}
+
+# 3. Define a User-Defined Function (UDF) to calculate sentiment
+def sentiment_score(text):
+    if text is None:
+        return 0
+    score = 0
+    words = set(text.lower().split())
+    for word in words:
+        if word in positive_words:
+            score += 1
+        elif word in negative_words:
+            score -= 1
+    return score
+
+# Register the UDF with Spark
+sentiment_udf = udf(sentiment_score, IntegerType())
+
+# 4. Read the CSV file from the local file system with header=False
+df = spark.read.option("header",False).option("inferSchema", True).csv("file:///home/hadoop/train.csv")
+
+# 5. Apply the UDF to create a new sentiment_score column, using '_c2' as the column name
+sentiment_df = df.withColumn("sentiment_score", sentiment_udf(col("_c2")))
+
+# 6. Show the results
+sentiment_df.select("_c2", "sentiment_score").show(20, truncate=False)
+
+# 7. Stop the SparkSession
+spark.stop()
