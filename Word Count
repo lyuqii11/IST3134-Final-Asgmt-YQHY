@@ -1,0 +1,68 @@
+pyspark 
+
+from pyspark import SparkContext
+from pyspark import SparksSession, Row
+from pyspark.sql functions import explode, split.lower
+
+#Read Data File#
+df = spark.read.option("header", True).option("inferSchema", True).csv("file://hadoop/train.csv")
+
+# Stop Words Count#
+
+# 1. Create a SparkSession 
+spark = SparkSession.builder.appName("Local Word Count").getOrCreate()
+
+#2. Read the CSV file from the system 
+# Use 'head=False' due the the CSV file has no header row
+df = spark.read.option("header", False).option("inferSchema", True).csv("file://hadoop/train.csv")
+
+#3. Perform the the word count onthe third column, which Spark name '_c2'
+words_df = df.select(explode(split(lower(df._c2), "..W+")).alias("word))
+
+#4. Filter out any empty words
+words_df = words_df.filter(words_df.word !="")
+
+#5. Group by word and count the occurrences
+word_count = word_df.groupBy("word").count().orderBy("count", ascending=False)
+
+#6. Show the top 20 most frequent words
+word_count.show(20, truncate=False)
+
+
+#Stop Words Count#
+# 1. Create a SparkSession 
+spark = SparkSession.builder.appName("Word Count with Stopwords").getOrCreate()
+
+# 2. A list of common English stopwords to removed
+stopwords = set(["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your",
+"yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", 
+"it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", 
+"this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", 
+"had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", 
+"until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", 
+"before", "after", "above", "below", "to", "from", "up", "down", "in", "out", "on", "off", "over", "under",
+"again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both",
+"each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so",
+"than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now"])
+
+#3. Data Loading 
+#Load the data directly into a DataFrame using the file path 
+df = spark.read.option("header", False).option("inferSchema", True).csv("file://hadoop/train.csv")
+
+#4. Filtering out the stopwords
+words_df = words_df.filter(words_df.word != "")
+words_df = words_df.filter(~words_df.word.isin(stopwords))
+
+#5. Word Count and Frequency Analysis
+# Group the words and count their frequencies.
+word_count = words_df.groupBy("word").count().orderBy("count", ascending=False)
+
+#6. Display the top 20 most frequent words.
+word_count.show(20, truncate=False)
+
+#7.  Stop the SparkSession
+spark.stop()
+
+
+
+
