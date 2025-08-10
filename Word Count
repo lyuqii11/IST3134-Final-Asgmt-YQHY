@@ -1,8 +1,7 @@
 pyspark 
 
-from pyspark import SparkContext
-from pyspark import SparksSession, Row
-from pyspark.sql functions import explode, split.lower
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import explode, split, lower
 
 #Read Data File#
 df = spark.read.option("header", True).option("inferSchema", True).csv("file://hadoop/train.csv")
