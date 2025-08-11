@@ -1,0 +1,33 @@
+# Launch EMR in local terminal, numbers can be changed everytime it runs
+ssh -i ~/bdasgmt-rev.pem hadoop@ec2-54-205-88-169.compute-1.amazonaws.com
+
+# text editor for MapReduce
+nano mapper.py 
+nano reducer.py
+chmod +x mapper.py reducer.py # make the scripts excutable
+
+# Data transfer from S3 to HDFS
+hadoop fs -mkdir -p /user/hadoop/input/train
+hadoop distcp s3://amazonrev-asgmt/path/to/train.csv /user/hadoop/input/train/ # amazonrev-asgmt is the name of the bucket created
+hadoop fs -ls /user/hadoop/input/train # Check whether the file is stored
+
+# Store txt and csv file into local filesystem
+aws s3 cp s3://amazonrev-asgmt/stopwords.txt ~/
+aws s3 cp s3://amazonrev-asgmt/train.csv . # To save the train.csv file in the local system for backing up
+ls
+
+# Hadoop Streaming job
+hadoop jar /usr/lib/hadoop-mapreduce/hadoop-streaming.jar \
+  -input /user/hadoop/input/train.csv \
+  -output /user/hadoop/output/wordcount \
+  -mapper mapper.py \
+  -reducer reducer.py \
+  -file mapper.py \
+  -file reducer.py \
+  -file stopwords.txt
+
+# Show the available outputs
+hadoop fs -ls /user/hadoop/output/wordcount
+
+# Print out the specific output (with top 20 most frequent words)
+hadoop fs -cat /user/hadoop/output/wordcount/part-00000
